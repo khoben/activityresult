@@ -1,0 +1,3 @@
+rootProject.name = "ActivityResultPermission"
+include ':app'
+include ':arpermission'
