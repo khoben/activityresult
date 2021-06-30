@@ -29,9 +29,6 @@ fun ComponentActivity.runWithPermissions(
 /**
  * Ask for given [permission] and invoke related callback methods.
  *
- * It calls [ComponentActivity.runWithPermissions] with
- * [Fragment.requireActivity] as receiver internally.
- *
  * @param permission Requested permission, should be value from [android.Manifest.permission]
  * @param onDenied On denied permission callback
  * @param onExplained On explained permission callback
@@ -43,8 +40,9 @@ fun Fragment.runWithPermissions(
     onExplained: (explainedPermissions: List<String>) -> Unit = {},
     onGranted: () -> Unit
 ) {
-    requireActivity().runWithPermissions(
-        permission = permission,
+    PermissionManager.run(
+        fragment = this,
+        requestedPermission = permission,
         onDenied = onDenied,
         onExplained = onExplained,
         onGranted = onGranted
