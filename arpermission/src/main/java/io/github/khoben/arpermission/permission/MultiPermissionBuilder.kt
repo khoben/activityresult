@@ -1,7 +1,8 @@
 package io.github.khoben.arpermission.permission
 
-class MultiPermissionBuilder {
+internal class MultiPermissionBuilder {
     var allGranted: () -> Unit = {}
-    var denied: (List<String>) -> Unit = {}
-    var explained: (List<String>) -> Unit = {}
+    var denied: (permissions: List<String>, isCancelled: Boolean) -> Unit = { _, _ -> }
+    var explained: (permissions: List<String>) -> Unit = {}
+    var permissionsProcessed: () -> Unit = {}
 }

@@ -4,14 +4,34 @@ import androidx.activity.ComponentActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.OnLifecycleEvent
 import io.github.khoben.arpermission.permission.PermissionRequestLauncher
 import io.github.khoben.arpermission.permission.requestPermissions
 
 
-class PermissionRepository() {
-    constructor(lifecycle: Lifecycle) : this() {
+/**
+ * Repository that holds activity result permission launchers.
+ *
+ * Permission request can be registered ([register] method) and launched
+ * ([runWithPermission] method) by some token string.
+ */
+@Deprecated(
+    "Use PermissionManager instead",
+    replaceWith = ReplaceWith("PermissionManager", "io.github.khoben.arpermission"),
+    DeprecationLevel.HIDDEN
+)
+class PermissionRepository {
+    /**
+     * Default constructor
+     */
+    constructor()
+
+    /**
+     * Creates lifecycle-aware repository
+     *
+     * @param lifecycle Used to release permissions on [Lifecycle.Event.ON_DESTROY]
+     */
+    constructor(lifecycle: Lifecycle) {
         lifecycle.addObserver(object : LifecycleObserver {
             @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
             fun onDestroy() {
@@ -21,6 +41,9 @@ class PermissionRepository() {
         })
     }
 
+    /**
+     * Permission entity that stored within repository
+     */
     private inner class PermissionUnit(
         val permissionRequestLauncher: PermissionRequestLauncher,
         val requestedPermissions: Array<String>,
@@ -55,10 +78,10 @@ class PermissionRepository() {
                     it.onGranted = null
                 }
             }
-            denied = {
+            denied = { permissions, isCancelled ->
                 onDenied()
             }
-            explained = {
+            explained = { permissions ->
                 onExplained()
             }
         }.also { launcher ->
@@ -104,8 +127,9 @@ class PermissionRepository() {
      * Releases all registered permissions
      */
     fun release() {
-        permissionMap.forEach { (_, value) ->
-            value.permissionRequestLauncher.unregister()
+        permissionMap.values.forEach { permission ->
+            permission.permissionRequestLauncher.unregister()
+            permission.onGranted = null
         }
         permissionMap.clear()
     }
