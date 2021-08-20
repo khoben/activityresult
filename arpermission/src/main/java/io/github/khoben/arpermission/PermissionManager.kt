@@ -10,7 +10,6 @@ import androidx.lifecycle.OnLifecycleEvent
 import io.github.khoben.arpermission.exception.PermissionNotBeingInitialized
 import io.github.khoben.arpermission.permission.PermissionRequestLauncher
 import io.github.khoben.arpermission.permission.requestPermissions
-import kotlin.reflect.KClass
 
 /**
  * PermissionManager holds and executes registered ActivityResult permission launchers
@@ -24,7 +23,7 @@ object PermissionManager {
         var onExplained: ((permissions: List<String>) -> Unit)? = null,
     )
 
-    private val permissionStorage = HashMap<KClass<*>, PermissionRequest>()
+    private val permissionStorage = HashMap<Int, PermissionRequest>()
 
     /**
      * Initialize and register permission request with ActivityResult API.
@@ -43,8 +42,7 @@ object PermissionManager {
      * @param lifecycle Lifecycle, if null then [AppCompatActivity.getLifecycle] will be used
      */
     fun hasRuntimePermissions(activity: AppCompatActivity, lifecycle: Lifecycle? = null) {
-        val clazz = activity::class
-        registerPermissionRequest(activity, lifecycle ?: activity.lifecycle, clazz)
+        registerPermissionRequest(activity, lifecycle ?: activity.lifecycle, activity.hashCode())
     }
 
     /**
@@ -64,19 +62,18 @@ object PermissionManager {
      * @param lifecycle Lifecycle, if null then [Fragment.getLifecycle] will be used
      */
     fun hasRuntimePermissions(fragment: Fragment, lifecycle: Lifecycle? = null) {
-        val clazz = fragment::class
-        registerPermissionRequest(fragment, lifecycle ?: fragment.lifecycle, clazz)
+        registerPermissionRequest(fragment, lifecycle ?: fragment.lifecycle, fragment.hashCode())
     }
 
     private fun registerPermissionRequest(
         activity: AppCompatActivity,
         lifecycle: Lifecycle,
-        clazz: KClass<*>
+        hashCode: Int
     ) {
-        if (clazz in permissionStorage) {
+        if (hashCode in permissionStorage) {
             Log.w(
                 TAG,
-                "${clazz.java.canonicalName}'s permission request has already been registered"
+                "${activity::class.java.canonicalName}'s permission request has already been registered"
             )
             return
         }
@@ -88,36 +85,36 @@ object PermissionManager {
 
         val permissionRequestLauncher = activity.requestPermissions {
             permissionsProcessed = {
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onGranted = null
                     it.onExplained = null
                     it.onDenied = null
                 }
             }
             allGranted = {
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onGranted?.invoke()
                 }
             }
             denied = { deniedPermissionList, isCancelled ->
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onDenied?.invoke(deniedPermissionList, isCancelled)
                 }
             }
             explained = { explainedPermissionList ->
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onExplained?.invoke(explainedPermissionList)
                 }
             }
         }
 
-        permissionStorage[clazz] = PermissionRequest(permissionRequestLauncher)
+        permissionStorage[hashCode] = PermissionRequest(permissionRequestLauncher)
 
         lifecycle.addObserver(object : LifecycleObserver {
             @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
             fun onDestroy() {
                 lifecycle.removeObserver(this)
-                releasePermissions(clazz)
+                releasePermissions(hashCode)
             }
         })
     }
@@ -125,12 +122,12 @@ object PermissionManager {
     private fun registerPermissionRequest(
         fragment: Fragment,
         lifecycle: Lifecycle,
-        clazz: KClass<*>
+        hashCode: Int
     ) {
-        if (clazz in permissionStorage) {
+        if (hashCode in permissionStorage) {
             Log.w(
                 TAG,
-                "${clazz.java.canonicalName}'s permission request has already been registered"
+                "${fragment::class.java.canonicalName}'s permission request has already been registered"
             )
             return
         }
@@ -142,36 +139,36 @@ object PermissionManager {
 
         val permissionRequestLauncher = fragment.requestPermissions {
             permissionsProcessed = {
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onGranted = null
                     it.onExplained = null
                     it.onDenied = null
                 }
             }
             allGranted = {
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onGranted?.invoke()
                 }
             }
             denied = { deniedPermissionList, isCancelled ->
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onDenied?.invoke(deniedPermissionList, isCancelled)
                 }
             }
             explained = { explainedPermissionList ->
-                permissionStorage[clazz]?.let {
+                permissionStorage[hashCode]?.let {
                     it.onExplained?.invoke(explainedPermissionList)
                 }
             }
         }
 
-        permissionStorage[clazz] = PermissionRequest(permissionRequestLauncher)
+        permissionStorage[hashCode] = PermissionRequest(permissionRequestLauncher)
 
         lifecycle.addObserver(object : LifecycleObserver {
             @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
             fun onDestroy() {
                 lifecycle.removeObserver(this)
-                releasePermissions(clazz)
+                releasePermissions(hashCode)
             }
         })
     }
@@ -192,7 +189,7 @@ object PermissionManager {
         onExplained: ((permissions: List<String>) -> Unit)? = null,
     ) {
         run(
-            activity::class,
+            activity.hashCode(),
             *requestedPermission,
             onGranted = onGranted,
             onDenied = onDenied,
@@ -216,7 +213,7 @@ object PermissionManager {
         onExplained: ((permissions: List<String>) -> Unit)? = null,
     ) {
         run(
-            fragment::class,
+            fragment.hashCode(),
             *requestedPermission,
             onGranted = onGranted,
             onDenied = onDenied,
@@ -224,15 +221,14 @@ object PermissionManager {
         )
     }
 
-    @Synchronized
     private fun run(
-        clazz: KClass<*>,
+        hashCode: Int,
         vararg requestedPermission: String,
         onGranted: (() -> Unit)? = null,
         onDenied: ((permissions: List<String>, isCancelled: Boolean) -> Unit)? = null,
         onExplained: ((permissions: List<String>) -> Unit)? = null,
     ) {
-        permissionStorage[clazz].let { permissionCallback ->
+        permissionStorage[hashCode].let { permissionCallback ->
             if (permissionCallback == null) {
                 throw PermissionNotBeingInitialized()
             } else {
@@ -250,7 +246,7 @@ object PermissionManager {
      * @param activity Activity
      */
     fun release(activity: AppCompatActivity) {
-        releasePermissions(activity::class)
+        releasePermissions(activity.hashCode())
     }
 
     /**
@@ -259,17 +255,17 @@ object PermissionManager {
      * @param fragment Fragment
      */
     fun release(fragment: Fragment) {
-        releasePermissions(fragment::class)
+        releasePermissions(fragment.hashCode())
     }
 
-    private fun releasePermissions(kClass: KClass<*>) {
-        permissionStorage[kClass]?.let { permissionCallback ->
+    private fun releasePermissions(hashCode: Int) {
+        permissionStorage[hashCode]?.let { permissionCallback ->
             permissionCallback.permissionRequestLauncher.unregister()
             permissionCallback.onGranted = null
             permissionCallback.onExplained = null
             permissionCallback.onDenied = null
         }
-        permissionStorage.remove(kClass)
+        permissionStorage.remove(hashCode)
     }
 
     private val TAG = PermissionManager::class.java.simpleName
