@@ -7,7 +7,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
-import io.github.khoben.arpermission.exception.IllegalRegisterEntity
 import io.github.khoben.arpermission.exception.PermissionNotBeingInitialized
 import io.github.khoben.arpermission.permission.PermissionRequestLauncher
 import io.github.khoben.arpermission.permission.requestPermissions
@@ -17,14 +16,15 @@ import kotlin.reflect.KClass
  * PermissionManager holds and executes registered ActivityResult permission launchers
  */
 object PermissionManager {
-    private val map = HashMap<KClass<*>, PermissionCallback>()
 
-    private data class PermissionCallback(
+    private data class PermissionRequest(
         val permissionRequestLauncher: PermissionRequestLauncher,
         var onGranted: (() -> Unit)? = null,
         var onDenied: ((permissions: List<String>, isCancelled: Boolean) -> Unit)? = null,
         var onExplained: ((permissions: List<String>) -> Unit)? = null,
     )
+
+    private val permissionStorage = HashMap<KClass<*>, PermissionRequest>()
 
     /**
      * Initialize and register permission request with ActivityResult API.
@@ -35,7 +35,7 @@ object PermissionManager {
      *
      * Relies on [lifecycle] ([activity]'s lifecycle by default):
      *
-     *   1. Registered on [Lifecycle.Event.ON_CREATE]
+     *   1. Must be registered before [Lifecycle.Event.ON_START]
      *
      *   2. Released on [Lifecycle.Event.ON_DESTROY]
      *
@@ -56,7 +56,7 @@ object PermissionManager {
      *
      * Relies on [lifecycle] ([fragment]'s lifecycle by default):
      *
-     *   1. Registered on [Lifecycle.Event.ON_CREATE]
+     *   1. Must be registered before [Lifecycle.Event.ON_START]
      *
      *   2. Released on [Lifecycle.Event.ON_DESTROY]
      *
@@ -68,8 +68,12 @@ object PermissionManager {
         registerPermissionRequest(fragment, lifecycle ?: fragment.lifecycle, clazz)
     }
 
-    private fun registerPermissionRequest(entity: Any, lifecycle: Lifecycle, clazz: KClass<*>) {
-        if (clazz in map) {
+    private fun registerPermissionRequest(
+        activity: AppCompatActivity,
+        lifecycle: Lifecycle,
+        clazz: KClass<*>
+    ) {
+        if (clazz in permissionStorage) {
             Log.w(
                 TAG,
                 "${clazz.java.canonicalName}'s permission request has already been registered"
@@ -77,89 +81,99 @@ object PermissionManager {
             return
         }
 
-        when (entity) {
-            is AppCompatActivity -> {
-                lifecycle.addObserver(object : LifecycleObserver {
-
-                    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
-                    fun onCreate() {
-                        entity.requestPermissions {
-                            permissionsProcessed = {
-                                map[clazz]?.let {
-                                    it.onGranted = null
-                                    it.onExplained = null
-                                    it.onDenied = null
-                                }
-                            }
-                            allGranted = {
-                                map[clazz]?.let {
-                                    it.onGranted?.invoke()
-                                }
-                            }
-                            denied = { deniedPermissionList, isCancelled ->
-                                map[clazz]?.let {
-                                    it.onDenied?.invoke(deniedPermissionList, isCancelled)
-                                }
-                            }
-                            explained = { explainedPermissionList ->
-                                map[clazz]?.let {
-                                    it.onExplained?.invoke(explainedPermissionList)
-                                }
-                            }
-                        }.also { launcher ->
-                            map[clazz] = PermissionCallback(launcher)
-                        }
-                    }
-
-                    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-                    fun onDestroy() {
-                        lifecycle.removeObserver(this)
-                        releasePermissions(clazz)
-                    }
-                })
-            }
-            is Fragment -> {
-                lifecycle.addObserver(object : LifecycleObserver {
-
-                    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
-                    fun onCreate() {
-                        entity.requestPermissions {
-                            permissionsProcessed = {
-                                map[clazz]?.let {
-                                    it.onGranted = null
-                                    it.onExplained = null
-                                    it.onDenied = null
-                                }
-                            }
-                            allGranted = {
-                                map[clazz]?.let {
-                                    it.onGranted?.invoke()
-                                }
-                            }
-                            denied = { deniedPermissionList, isCancelled ->
-                                map[clazz]?.let {
-                                    it.onDenied?.invoke(deniedPermissionList, isCancelled)
-                                }
-                            }
-                            explained = { explainedPermissionList ->
-                                map[clazz]?.let {
-                                    it.onExplained?.invoke(explainedPermissionList)
-                                }
-                            }
-                        }.also { launcher ->
-                            map[clazz] = PermissionCallback(launcher)
-                        }
-                    }
-
-                    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-                    fun onDestroy() {
-                        lifecycle.removeObserver(this)
-                        releasePermissions(clazz)
-                    }
-                })
-            }
-            else -> throw IllegalRegisterEntity()
+        check(!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            "Attempting to register while current state is ${lifecycle.currentState}." +
+                    " Call PermissionManager.hasRuntimePermissions() before lifecycle owner are STARTED. "
         }
+
+        val permissionRequestLauncher = activity.requestPermissions {
+            permissionsProcessed = {
+                permissionStorage[clazz]?.let {
+                    it.onGranted = null
+                    it.onExplained = null
+                    it.onDenied = null
+                }
+            }
+            allGranted = {
+                permissionStorage[clazz]?.let {
+                    it.onGranted?.invoke()
+                }
+            }
+            denied = { deniedPermissionList, isCancelled ->
+                permissionStorage[clazz]?.let {
+                    it.onDenied?.invoke(deniedPermissionList, isCancelled)
+                }
+            }
+            explained = { explainedPermissionList ->
+                permissionStorage[clazz]?.let {
+                    it.onExplained?.invoke(explainedPermissionList)
+                }
+            }
+        }
+
+        permissionStorage[clazz] = PermissionRequest(permissionRequestLauncher)
+
+        lifecycle.addObserver(object : LifecycleObserver {
+            @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            fun onDestroy() {
+                lifecycle.removeObserver(this)
+                releasePermissions(clazz)
+            }
+        })
+    }
+
+    private fun registerPermissionRequest(
+        fragment: Fragment,
+        lifecycle: Lifecycle,
+        clazz: KClass<*>
+    ) {
+        if (clazz in permissionStorage) {
+            Log.w(
+                TAG,
+                "${clazz.java.canonicalName}'s permission request has already been registered"
+            )
+            return
+        }
+
+        check(!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            "Attempting to register while current state is ${lifecycle.currentState}." +
+                    " Call PermissionManager.hasRuntimePermissions() before lifecycle owner are STARTED. "
+        }
+
+        val permissionRequestLauncher = fragment.requestPermissions {
+            permissionsProcessed = {
+                permissionStorage[clazz]?.let {
+                    it.onGranted = null
+                    it.onExplained = null
+                    it.onDenied = null
+                }
+            }
+            allGranted = {
+                permissionStorage[clazz]?.let {
+                    it.onGranted?.invoke()
+                }
+            }
+            denied = { deniedPermissionList, isCancelled ->
+                permissionStorage[clazz]?.let {
+                    it.onDenied?.invoke(deniedPermissionList, isCancelled)
+                }
+            }
+            explained = { explainedPermissionList ->
+                permissionStorage[clazz]?.let {
+                    it.onExplained?.invoke(explainedPermissionList)
+                }
+            }
+        }
+
+        permissionStorage[clazz] = PermissionRequest(permissionRequestLauncher)
+
+        lifecycle.addObserver(object : LifecycleObserver {
+            @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+            fun onDestroy() {
+                lifecycle.removeObserver(this)
+                releasePermissions(clazz)
+            }
+        })
     }
 
     /**
@@ -218,7 +232,7 @@ object PermissionManager {
         onDenied: ((permissions: List<String>, isCancelled: Boolean) -> Unit)? = null,
         onExplained: ((permissions: List<String>) -> Unit)? = null,
     ) {
-        map[clazz].let { permissionCallback ->
+        permissionStorage[clazz].let { permissionCallback ->
             if (permissionCallback == null) {
                 throw PermissionNotBeingInitialized()
             } else {
@@ -249,13 +263,13 @@ object PermissionManager {
     }
 
     private fun releasePermissions(kClass: KClass<*>) {
-        map[kClass]?.let {
-            it.permissionRequestLauncher.unregister()
-            it.onGranted = null
-            it.onExplained = null
-            it.onDenied = null
+        permissionStorage[kClass]?.let { permissionCallback ->
+            permissionCallback.permissionRequestLauncher.unregister()
+            permissionCallback.onGranted = null
+            permissionCallback.onExplained = null
+            permissionCallback.onDenied = null
         }
-        map.remove(kClass)
+        permissionStorage.remove(kClass)
     }
 
     private val TAG = PermissionManager::class.java.simpleName
