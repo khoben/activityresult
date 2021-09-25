@@ -1,3 +1,4 @@
-rootProject.name = "ActivityResultPermission"
+rootProject.name = "ActivityResult"
 include ':app'
 include ':arpermission'
+include ':arresult'

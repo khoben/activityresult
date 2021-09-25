@@ -36,7 +36,7 @@ afterEvaluate {
             release(MavenPublication) {
                 from components.release
                 groupId = 'io.github.khoben'
-                artifactId = 'permission'
+                artifactId = 'result'
                 version = '2.0.0-alpha02'
             }
         }
