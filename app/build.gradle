@@ -38,8 +38,10 @@ dependencies {
     implementation 'com.google.android.material:material:1.4.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
 
-    implementation project(':arpermission')
-    implementation project(':arresult')
+//    implementation project(':arpermission')
+//    implementation project(':arresult')
+    implementation "com.github.khoben.activityresult:permission:2.0.0-alpha02"
+    implementation "com.github.khoben.activityresult:result:2.0.0-alpha02"
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
