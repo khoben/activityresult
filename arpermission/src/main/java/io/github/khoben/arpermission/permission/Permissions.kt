@@ -4,15 +4,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.fragment.app.Fragment
-import io.github.khoben.arpermission.PermissionManager.DENIED
-import io.github.khoben.arpermission.PermissionManager.EXPLAINED
 
+private const val DENIED = "DENIED"
+private const val EXPLAINED = "EXPLAINED"
 
-internal inline fun ComponentActivity.requestMultiplePermissions(
-    crossinline denied: (permissions: List<String>, isCancelled: Boolean) -> Unit = { _, _ -> },
-    crossinline explained: (permissions: List<String>) -> Unit = {},
-    crossinline allGranted: () -> Unit = {},
-    crossinline permissionProcessed: () -> Unit = {},
+internal inline fun ComponentActivity.registerMultiplePermissions(
+    crossinline onDenied: (permissions: List<String>, isCancelled: Boolean) -> Unit = { _, _ -> },
+    crossinline onExplained: (permissions: List<String>) -> Unit = {},
+    crossinline onAllGranted: () -> Unit = {},
+    crossinline onRequestFinished: () -> Unit = {},
 ): PermissionRequestLauncher {
     return registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         // filter only denied permission
@@ -27,30 +27,32 @@ internal inline fun ComponentActivity.requestMultiplePermissions(
                     else
                         EXPLAINED
                 }.let {
-                    it[DENIED]?.let { deniedPermission ->
-                        denied(deniedPermission, false)
-                    }
-                    it[EXPLAINED]?.let { explainedPermission ->
-                        explained(explainedPermission)
+                    val denied = it[DENIED]
+                    if (denied != null) {
+                        onDenied(denied, false)
+                    } else {
+                        it[EXPLAINED]?.let { explainedPermission ->
+                            onExplained(explainedPermission)
+                        }
                     }
                 }
             }
             result.isEmpty() -> {   // request has been cancelled
-                denied(emptyList(), true)
+                onDenied(emptyList(), true)
             }
             else -> {   // all granted
-                allGranted()
+                onAllGranted()
             }
         }
-        permissionProcessed()
+        onRequestFinished()
     }
 }
 
-internal inline fun Fragment.requestMultiplePermissions(
-    crossinline denied: (permissions: List<String>, isCancelled: Boolean) -> Unit = { _, _ -> },
-    crossinline explained: (permissions: List<String>) -> Unit = {},
-    crossinline allGranted: () -> Unit = {},
-    crossinline permissionProcessed: () -> Unit = {},
+internal inline fun Fragment.registerMultiplePermissions(
+    crossinline onDenied: (permissions: List<String>, isCancelled: Boolean) -> Unit = { _, _ -> },
+    crossinline onExplained: (permissions: List<String>) -> Unit = {},
+    crossinline onAllGranted: () -> Unit = {},
+    crossinline onRequestFinished: () -> Unit = {},
 ): PermissionRequestLauncher {
     return registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         // filter only denied permission
@@ -65,21 +67,23 @@ internal inline fun Fragment.requestMultiplePermissions(
                     else
                         EXPLAINED
                 }.let {
-                    it[DENIED]?.let { deniedPermission ->
-                        denied(deniedPermission, false)
-                    }
-                    it[EXPLAINED]?.let { explainedPermission ->
-                        explained(explainedPermission)
+                    val denied = it[DENIED]
+                    if (denied != null) {
+                        onDenied(denied, false)
+                    } else {
+                        it[EXPLAINED]?.let { explainedPermission ->
+                            onExplained(explainedPermission)
+                        }
                     }
                 }
             }
             result.isEmpty() -> {   // request has been cancelled
-                denied(emptyList(), true)
+                onDenied(emptyList(), true)
             }
             else -> {   // all granted
-                allGranted()
+                onAllGranted()
             }
         }
-        permissionProcessed()
+        onRequestFinished()
     }
 }

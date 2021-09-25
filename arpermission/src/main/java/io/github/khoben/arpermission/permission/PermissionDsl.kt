@@ -1,32 +1,29 @@
 package io.github.khoben.arpermission.permission
 
 import androidx.activity.ComponentActivity
-import androidx.activity.result.ActivityResultLauncher
 import androidx.fragment.app.Fragment
 
 
-internal inline fun ComponentActivity.requestPermissions(
-    builderPermission: MultiPermissionBuilder.() -> Unit
+internal inline fun ComponentActivity.registerPermissions(
+    crossinline block: MultiPermissionBuilder.() -> Unit
 ): PermissionRequestLauncher {
-    val builder = MultiPermissionBuilder()
-    builder.builderPermission()
-    return requestMultiplePermissions(
-        allGranted = builder.allGranted,
-        denied = builder.denied,
-        explained = builder.explained,
-        permissionProcessed = builder.permissionsProcessed
+    val builder = MultiPermissionBuilder().apply(block)
+    return registerMultiplePermissions(
+        onAllGranted = builder.allGranted,
+        onDenied = builder.denied,
+        onExplained = builder.explained,
+        onRequestFinished = builder.requestFinished
     )
 }
 
-internal inline fun Fragment.requestPermissions(
-    builderPermission: MultiPermissionBuilder.() -> Unit
+internal inline fun Fragment.registerPermissions(
+    crossinline block: MultiPermissionBuilder.() -> Unit
 ): PermissionRequestLauncher {
-    val builder = MultiPermissionBuilder()
-    builder.builderPermission()
-    return requestMultiplePermissions(
-        allGranted = builder.allGranted,
-        denied = builder.denied,
-        explained = builder.explained,
-        permissionProcessed = builder.permissionsProcessed
+    val builder = MultiPermissionBuilder().apply(block)
+    return registerMultiplePermissions(
+        onAllGranted = builder.allGranted,
+        onDenied = builder.denied,
+        onExplained = builder.explained,
+        onRequestFinished = builder.requestFinished
     )
 }

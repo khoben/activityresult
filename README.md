@@ -8,15 +8,16 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     ```
-1. Register permission request in Activity or Fragment
+1. Create and register permission request launcher in Activity or Fragment
 
     ```kotlin
-    PermissionManager.hasRuntimePermissions(this)
+   val permission = PermissionRequest()
+   permission.register(this)
     ```
 2. Run something with permissions
 
     ```kotlin
-    runWithPermissions(
+    permission.launch(
         Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,
         onDenied = { permissions, isCancelled ->
             Toast.makeText(this, "onDenied $permissions $isCancelled", Toast.LENGTH_SHORT).show()
