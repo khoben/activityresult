@@ -1,4 +1,5 @@
 ## ActivityResultPermission - Android Runtime permissions & receiving results w/ ActivityResult API
+### [Sample app (apk)](https://github.com/khoben/activityresult/releases/latest/download/sample.apk)
 ### Usage
 
 0. Prepare AndroidManifest (configure app permissions)
@@ -52,5 +53,3 @@ implementation 'com.github.khoben.activityresult:permission:<latest_version>'
 # Result request
 implementation 'com.github.khoben.activityresult:result:<latest_version>'
 ```
-
-### [Sample app](app/src/main/java/io/github/khoben/sample/MainActivity.kt)
