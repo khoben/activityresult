@@ -20,31 +20,16 @@
 2. Run
 
     ```kotlin
-    permission.launch(
+    permissions.launch(
         Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,
-        onDenied = { permissions, isCancelled ->
-            Toast.makeText(this, "onDenied $permissions $isCancelled", Toast.LENGTH_SHORT).show()
-        },
-        onExplained = { permissions ->
-            Toast.makeText(this, "onExplained $permissions", Toast.LENGTH_SHORT).show()
-        }
-    ) { // All requested permission granted
-        Toast.makeText(this, "Granted", Toast.LENGTH_SHORT).show()
-    }
+        onDenied = { denied, isCancelled -> showToast("onDenied $denied $isCancelled") },
+        onExplained = { explained -> showToast("onExplained $explained") },
+        onGranted = { showToast("Granted") }
+    )
    
    imagePicker.launch("image/*") {
-       success = { imageUri ->
-           imageUri?.let {
-               val drawable =
-                   BitmapFactory.decodeStream(contentResolver.openInputStream(it))
-                       .toDrawable(resources)
-               findViewById<View>(R.id.root).background = drawable
-           }
-       }
-       failed = {
-           Toast.makeText(this@MainActivity, "Image picker failed: $it", Toast.LENGTH_LONG)
-               .show()
-       }
+        success = { imageUri -> setImageAsBackground(imageUri) }
+        failed = { cause -> showToast("Image picker failed: $cause") }
    }
     ```
 3. How to create custom result request

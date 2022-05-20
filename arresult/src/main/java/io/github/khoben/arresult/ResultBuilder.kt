@@ -1,6 +1,6 @@
 package io.github.khoben.arresult
 
-data class ResultBuilder<I>(
+class ResultBuilder<I>(
     /**
      * Result loaded
      */
