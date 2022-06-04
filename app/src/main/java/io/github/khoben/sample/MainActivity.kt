@@ -1,9 +1,12 @@
 package io.github.khoben.sample
 
 import android.Manifest
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
@@ -12,17 +15,24 @@ import androidx.core.graphics.drawable.toDrawable
 import io.github.khoben.arpermission.PermissionRequest
 import io.github.khoben.arpermission.sample.R
 import io.github.khoben.arresult.launcher.GetContentUriLauncher
+import io.github.khoben.arresult.launcher.TakePhotoResult
+import io.github.khoben.arresult.launcher.TakePhotoLauncher
+import io.github.khoben.arresult.launcher.TakeVideoUriLauncher
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     private val permissions = PermissionRequest()
     private val imagePicker = GetContentUriLauncher()
+    private val takePhoto = TakePhotoLauncher()
+    private val takeVideo = TakeVideoUriLauncher()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         permissions.register(this)
         imagePicker.register(this)
+        takePhoto.register(this)
+        takeVideo.register(this)
 
         findViewById<Button>(R.id.buttonPermission).setOnClickListener {
             permissions.launch(
@@ -33,12 +43,49 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             )
         }
 
-        findViewById<Button>(R.id.buttonResult).setOnClickListener {
+        findViewById<Button>(R.id.buttonPickImage).setOnClickListener {
             imagePicker.launch("image/*") {
                 success = { imageUri -> setImageAsBackground(imageUri) }
                 failed = { cause -> showToast("Image picker failed: $cause") }
             }
         }
+
+        findViewById<Button>(R.id.buttonTakePhoto).setOnClickListener {
+            takePhoto.launch(null) {
+                success = { takePhotoResult ->
+                    when (takePhotoResult) {
+                        is TakePhotoResult.FullSized -> setImageAsBackground(takePhotoResult.data)
+                        is TakePhotoResult.Preview -> setImageAsBackground(takePhotoResult.data)
+                        null -> {}
+                    }
+                }
+                failed = { cause ->
+                    showToast("Take photo failed: $cause")
+                    Log.e("takePhoto", "Take photo failed", cause)
+                }
+            }
+        }
+
+        findViewById<Button>(R.id.buttonTakeVideo).setOnClickListener {
+            takeVideo.launch(generateUri(applicationContext, Environment.DIRECTORY_MOVIES)) {
+                success = { takeVideoResult ->
+                    VideoDialogFragment.create(takeVideoResult).show(supportFragmentManager, VideoDialogFragment.TAG)
+                }
+                failed = { cause ->
+                    showToast("Take video failed: $cause")
+                    Log.e("takeVideo", "Take video failed", cause)
+                }
+            }
+        }
+    }
+
+    private fun setImageAsBackground(image: Bitmap?) {
+        if (image == null) {
+            showToast("Image was null")
+            return
+        }
+
+        findViewById<View>(R.id.root).background = image.toDrawable(resources)
     }
 
     private fun setImageAsBackground(imageUri: Uri?) {

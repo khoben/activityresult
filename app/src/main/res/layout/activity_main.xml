@@ -16,9 +16,23 @@
         android:text="Request permission" />
 
     <Button
-        android:id="@+id/buttonResult"
+        android:id="@+id/buttonPickImage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
         android:text="Pick image" />
+
+    <Button
+        android:id="@+id/buttonTakePhoto"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:text="Take photo" />
+
+    <Button
+        android:id="@+id/buttonTakeVideo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Take video" />
 
 </LinearLayout>
