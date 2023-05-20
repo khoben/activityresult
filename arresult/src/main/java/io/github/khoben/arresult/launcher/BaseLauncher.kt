@@ -16,7 +16,7 @@ import io.github.khoben.arresult.exception.ResultNotPresentedException
  */
 abstract class BaseLauncher<I, O>(
     private val contract: ActivityResultContract<I, O>
-) : ActivityResultCallback<O>, DefaultLifecycleObserver {
+) : ActivityResultCallback<O?>, DefaultLifecycleObserver {
 
     protected val resultBuilder = ResultBuilder<O>()
     protected lateinit var resultLauncher: ActivityResultLauncher<I>
@@ -41,16 +41,16 @@ abstract class BaseLauncher<I, O>(
         lifecycleOwner.lifecycle.addObserver(this)
     }
 
-    final override fun onCreate(lifecycleOwner: LifecycleOwner) {
-        if (lifecycleOwner is ComponentActivity) {
-            resultLauncher = lifecycleOwner.registerForActivityResult(contract, this)
-        } else if (lifecycleOwner is Fragment) {
-            resultLauncher = lifecycleOwner.registerForActivityResult(contract, this)
+    final override fun onCreate(owner: LifecycleOwner) {
+        if (owner is ComponentActivity) {
+            resultLauncher = owner.registerForActivityResult(contract, this)
+        } else if (owner is Fragment) {
+            resultLauncher = owner.registerForActivityResult(contract, this)
         }
     }
 
-    final override fun onDestroy(lifecycleOwner: LifecycleOwner) {
-        lifecycleOwner.lifecycle.removeObserver(this)
+    final override fun onDestroy(owner: LifecycleOwner) {
+        owner.lifecycle.removeObserver(this)
         resultLauncher.unregister()
     }
 

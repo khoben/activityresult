@@ -4,6 +4,7 @@ import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
@@ -13,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.drawable.toDrawable
 import io.github.khoben.arpermission.PermissionRequest
+import io.github.khoben.arpermission.permission.ConditionalPermission
 import io.github.khoben.arpermission.sample.R
 import io.github.khoben.arresult.launcher.GetContentUriLauncher
 import io.github.khoben.arresult.launcher.TakePhotoResult
@@ -36,7 +38,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
         findViewById<Button>(R.id.buttonPermission).setOnClickListener {
             permissions.launch(
-                Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,
+                ConditionalPermission(
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q
+                ),
+                Manifest.permission.CAMERA,
                 onDenied = { denied, isCancelled -> showToast("onDenied $denied $isCancelled") },
                 onExplained = { explained -> showToast("onExplained $explained") },
                 onGranted = { showToast("Granted") }
