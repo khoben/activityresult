@@ -15,9 +15,9 @@ internal class TakeVideoUriContract : ActivityResultContract<Uri?, Uri?>() {
     private var requestedUri: Uri? = null
 
     override fun createIntent(context: Context, input: Uri?): Intent {
+        requestedUri = input
         return Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
             if (input != null) {
-                requestedUri = input
                 putExtra(MediaStore.EXTRA_OUTPUT, input)
             }
         }
@@ -30,7 +30,6 @@ internal class TakeVideoUriContract : ActivityResultContract<Uri?, Uri?>() {
 
     override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
         val contentUri: Uri? = requestedUri ?: intent?.data
-        requestedUri = null
         return when {
             resultCode != Activity.RESULT_OK -> null
             else -> contentUri

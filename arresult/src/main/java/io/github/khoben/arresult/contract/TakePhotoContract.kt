@@ -22,12 +22,13 @@ internal class TakePhotoContract : ActivityResultContract<Uri?, TakePhotoResult?
     private var requestedUri: Uri? = null
 
     override fun createIntent(context: Context, input: Uri?): Intent {
-        return Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-            if (input != null) {
-                requestedUri = input
-                putExtra(MediaStore.EXTRA_OUTPUT, input)
+        requestedUri = input
+        return Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            .apply {
+                if (input != null) {
+                    putExtra(MediaStore.EXTRA_OUTPUT, input)
+                }
             }
-        }
     }
 
     override fun getSynchronousResult(
@@ -36,9 +37,8 @@ internal class TakePhotoContract : ActivityResultContract<Uri?, TakePhotoResult?
     ): SynchronousResult<TakePhotoResult?>? = null
 
     override fun parseResult(resultCode: Int, intent: Intent?): TakePhotoResult? {
-        val previewBitmap: Bitmap? = intent?.getParcelableExtra("data")
         val contentUri: Uri? = requestedUri
-        requestedUri = null
+        val previewBitmap: Bitmap? = intent?.getParcelableExtra("data")
         return when {
             resultCode != Activity.RESULT_OK -> null
             contentUri != null -> TakePhotoResult.FullSized(contentUri)

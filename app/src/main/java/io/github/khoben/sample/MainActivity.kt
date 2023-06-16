@@ -17,8 +17,8 @@ import io.github.khoben.arpermission.PermissionRequest
 import io.github.khoben.arpermission.permission.ConditionalPermission
 import io.github.khoben.arpermission.sample.R
 import io.github.khoben.arresult.launcher.GetContentUriLauncher
-import io.github.khoben.arresult.launcher.TakePhotoResult
 import io.github.khoben.arresult.launcher.TakePhotoLauncher
+import io.github.khoben.arresult.launcher.TakePhotoResult
 import io.github.khoben.arresult.launcher.TakeVideoUriLauncher
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
@@ -57,12 +57,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         }
 
         findViewById<Button>(R.id.buttonTakePhoto).setOnClickListener {
-            takePhoto.launch(null) {
+            takePhoto.launch {
                 success = { takePhotoResult ->
                     when (takePhotoResult) {
                         is TakePhotoResult.FullSized -> setImageAsBackground(takePhotoResult.data)
                         is TakePhotoResult.Preview -> setImageAsBackground(takePhotoResult.data)
-                        null -> {}
                     }
                 }
                 failed = { cause ->
@@ -75,7 +74,8 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         findViewById<Button>(R.id.buttonTakeVideo).setOnClickListener {
             takeVideo.launch(generateUri(applicationContext, Environment.DIRECTORY_MOVIES)) {
                 success = { takeVideoResult ->
-                    VideoDialogFragment.create(takeVideoResult).show(supportFragmentManager, VideoDialogFragment.TAG)
+                    VideoDialogFragment.create(takeVideoResult)
+                        .show(supportFragmentManager, VideoDialogFragment.TAG)
                 }
                 failed = { cause ->
                     showToast("Take video failed: $cause")
@@ -85,21 +85,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         }
     }
 
-    private fun setImageAsBackground(image: Bitmap?) {
-        if (image == null) {
-            showToast("Image was null")
-            return
-        }
-
+    private fun setImageAsBackground(image: Bitmap) {
         findViewById<View>(R.id.root).background = image.toDrawable(resources)
     }
 
-    private fun setImageAsBackground(imageUri: Uri?) {
-        if (imageUri == null) {
-            showToast("Image uri was null")
-            return
-        }
-
+    private fun setImageAsBackground(imageUri: Uri) {
         findViewById<View>(R.id.root).background = BitmapFactory
             .decodeStream(contentResolver.openInputStream(imageUri))
             .toDrawable(resources)

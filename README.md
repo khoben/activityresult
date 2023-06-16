@@ -22,7 +22,12 @@
 
     ```kotlin
     permissions.launch(
-        Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.CAMERA,
+        // request WRITE_EXTERNAL_STORAGE only on API <= 29
+        ConditionalPermission(
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q
+        ),
+        Manifest.permission.CAMERA,
         onDenied = { denied, isCancelled -> showToast("onDenied $denied $isCancelled") },
         onExplained = { explained -> showToast("onExplained $explained") },
         onGranted = { showToast("Granted") }
@@ -35,7 +40,7 @@
     ```
 3. How to create custom result request
 
-    3.1 Create your own contract: [example](arresult/src/main/java/io/github/khoben/arresult/contract/TakeVideoUriContract.kt)
+    3.1 Pick any [standard contract](https://developer.android.com/reference/androidx/activity/result/contract/ActivityResultContracts) or create your own contract: [example](arresult/src/main/java/io/github/khoben/arresult/contract/TakeVideoUriContract.kt)
     
     3.2 Create launcher: extend [`BaseLauncher`](arresult/src/main/java/io/github/khoben/arresult/launcher/BaseLauncher.kt), [example](arresult/src/main/java/io/github/khoben/arresult/launcher/GetContentUriLauncher.kt)
 ### Installation
