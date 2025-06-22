@@ -20,6 +20,7 @@ import io.github.khoben.arresult.launcher.GetContentUriLauncher
 import io.github.khoben.arresult.launcher.TakePhotoLauncher
 import io.github.khoben.arresult.launcher.TakePhotoResult
 import io.github.khoben.arresult.launcher.TakeVideoUriLauncher
+import io.github.khoben.arresult.launcher.launch
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
 

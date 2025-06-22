@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.activity.result.contract.ActivityResultContract
+import androidx.core.content.IntentCompat
 import io.github.khoben.arresult.launcher.TakePhotoResult
 
 /**
@@ -38,7 +39,8 @@ internal class TakePhotoContract : ActivityResultContract<Uri?, TakePhotoResult?
 
     override fun parseResult(resultCode: Int, intent: Intent?): TakePhotoResult? {
         val contentUri: Uri? = requestedUri
-        val previewBitmap: Bitmap? = intent?.getParcelableExtra("data")
+        val previewBitmap: Bitmap? =
+            intent?.let { IntentCompat.getParcelableExtra(it, "data", Bitmap::class.java) }
         return when {
             resultCode != Activity.RESULT_OK -> null
             contentUri != null -> TakePhotoResult.FullSized(contentUri)

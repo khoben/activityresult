@@ -16,7 +16,7 @@ import io.github.khoben.arresult.exception.ResultNotPresentedException
  */
 abstract class BaseLauncher<I, O>(
     private val contract: ActivityResultContract<I, O>
-) : ActivityResultCallback<O?>, DefaultLifecycleObserver {
+) : ActivityResultCallback<O>, DefaultLifecycleObserver {
 
     protected val resultBuilder = ResultBuilder<O>()
     protected lateinit var resultLauncher: ActivityResultLauncher<I>
@@ -24,15 +24,10 @@ abstract class BaseLauncher<I, O>(
     /**
      * Run result launch with callback
      */
-    open fun launch(input: I?, callbackBuilder: ResultBuilder<O>.() -> Unit) {
+    open fun launch(input: I, callbackBuilder: ResultBuilder<O>.() -> Unit) {
         resultBuilder.callbackBuilder()
         resultLauncher.launch(input)
     }
-
-    /**
-     * Run result launch with callback with null input
-     */
-    fun launch(callbackBuilder: ResultBuilder<O>.() -> Unit) = launch(null, callbackBuilder)
 
     /**
      * Register result launcher with [lifecycleOwner]
@@ -54,10 +49,16 @@ abstract class BaseLauncher<I, O>(
         resultLauncher.unregister()
     }
 
-    override fun onActivityResult(result: O?) {
+    override fun onActivityResult(result: O) {
         when {
             result != null -> resultBuilder.success.invoke(result)
             else -> resultBuilder.failed.invoke(ResultNotPresentedException())
         }
     }
 }
+
+/**
+ * Run result launch with callback with null input
+ */
+fun <I, O> BaseLauncher<I?, O>.launch(callbackBuilder: ResultBuilder<O>.() -> Unit) =
+    launch(null, callbackBuilder)
